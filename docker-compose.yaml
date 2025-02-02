@@ -1,0 +1,21 @@
+services:
+  vk_chatbot:
+    build: ./app
+    container_name: vk_chatbot
+    environment:
+      - VK_BOT_TOKEN=${VK_BOT_TOKEN}
+      - VK_GROUP_ID=${VK_GROUP_ID}
+    volumes:
+      - ./app:/app
+    restart: always
+    depends_on:
+      - nginx
+
+  nginx:
+    image: nginx:latest
+    container_name: vk_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: always
