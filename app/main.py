@@ -38,11 +38,37 @@ logger = logging.getLogger(__name__)
 
 
 def get_env_variable(var_name):
-    """Функция для получения переменной окружения, если она не найдена"""
+    """Получение переменной окружения из .env или ввод пользователя"""
+    env_path = '../.env'
     value = os.getenv(var_name)
-    if not value:
-        logger.warning(f"Переменная {var_name} не найдена. Запрашиваем у пользователя")
-        value = input(f"Введите, пожалуйста, значение {var_name}: ").strip()
+
+    try:
+        if not value and os.path.exists(env_path):
+            with open(env_path, 'r') as file:
+                lines = file.readlines()
+                for line in lines:
+                    if line.strip().startswith(f"{var_name}="):
+                        value = line.strip().split('=')[1].strip()
+                        logger.info(f"Переменная {var_name} загружена из {env_path}")
+                        return value
+
+        if not value:
+            logger.warning(f"Переменная {var_name} не найдена. Запрашиваем у пользователя.")
+            value = input(f"Введите значение для {var_name}: ").strip()
+
+            try:
+                with open(env_path, 'a') as file:
+                    file.write(f'{var_name}={value}\n')
+                    logger.info(f"Переменная {var_name} успешно записана в {env_path}")
+            except Exception as e:
+                logger.error(f"Ошибка при записи в {env_path}: {e}")
+
+    except FileNotFoundError:
+        logger.error(f"Файл {env_path} не найден.")
+    except PermissionError:
+        logger.error(f"Недостаточно прав для доступа к {env_path}.")
+    except Exception as e:
+        logger.exception(f"Неожиданная ошибка при работе с {env_path}: {e}")
 
     return value
 
@@ -51,6 +77,9 @@ def get_env_variable(var_name):
 try:
     TOKEN = get_env_variable("VK_BOT_TOKEN")
     GROUP_ID = get_env_variable("VK_GROUP_ID")
+
+    if not TOKEN or not GROUP_ID:
+        raise ValueError("Обязательные переменные VK_BOT_TOKEN и VK_GROUP_ID не заданы")
 
 except ValueError as e:
     logger.error(f"Ошибка: {e}")
